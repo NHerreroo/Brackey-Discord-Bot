@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-class General(commands.Cog):
+class generalCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -9,4 +9,4 @@ class General(commands.Cog):
         await ctx.send(f"¡Hola {ctx.author.mention}! 😄")
 
 async def setup(bot):
-    await bot.add_cog(General(bot))
+    await bot.add_cog(generalCog(bot))

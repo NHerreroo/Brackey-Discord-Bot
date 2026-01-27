@@ -1,7 +1,7 @@
 from discord.ext import commands
 import requests
 
-class MTG(commands.Cog):
+class mtgCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -24,4 +24,4 @@ class MTG(commands.Cog):
             await ctx.send(carta["card_faces"][0]["image_uris"]["large"])
 
 async def setup(bot):
-    await bot.add_cog(MTG(bot))
+    await bot.add_cog(mtgCog(bot))
