@@ -19,16 +19,23 @@ class Torneo:
         self.participantes.append(usuario)
         return True
 
+
     def info(self):
+        nombres = [miembro.name for miembro in self.participantes]
+        participantes_str = "\n".join(nombres) if nombres else "No hay participantes aún."
+
         return (
+
             f"🏆 {self.nombre}\n"
-            f"👥 Participantes: {len(self.participantes)}/{self.max_participantes}"
-            f"\n"
+            f"👥 Participantes: {len(self.participantes)}/{self.max_participantes}\n"
             f"Estado: {self.estado}\n"
+            f"\n"
+            f"Lista usuarios:\n - {participantes_str}\n"
+
         )
 
 
-  #CLASE ENCARGADA DE COMANDOS
+#CLASE ENCARGADA DE COMANDOS
 class torneoCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
