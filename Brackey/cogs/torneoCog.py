@@ -34,22 +34,22 @@ class torneoCog(commands.Cog):
         self.bot = bot
         self.listaTorneos = []
 
-    #crear torneo
+    # Crear el torneo
     @commands.command()
     async def createTournament(self, ctx, max_participantes: int, *, nombre):
         torneo = Torneo(nombre, max_participantes)
-        self.torneos.append(torneo)
+        self.listaTorneos.append(torneo)
 
         await ctx.send(
             f"🏆 Torneo **{nombre}** creado "
             f"(máx {max_participantes} jugadores)"
         )
 
-    # unir torneo
+    # Unirse al torneo
     @commands.command()
     async def joinTournament(self, ctx, *, nombre):
-        torneo = next((t for t in self.torneos if t.nombre == nombre), None)
-
+        torneo = next(
+            (t for t in self.listaTorneos if t.nombre == nombre),None)
         if torneo is None:
             await ctx.send("❌ No existe ese torneo")
             return
@@ -59,10 +59,11 @@ class torneoCog(commands.Cog):
         else:
             await ctx.send("❌ El torneo está lleno o ya estás dentro")
 
-    # info torneo
+    # Info torneo
     @commands.command()
     async def tournamentInfo(self, ctx, *, nombre):
-        torneo = next((t for t in self.torneos if t.nombre == nombre), None)
+        torneo = next(
+            (t for t in self.listaTorneos if t.nombre == nombre),None)
 
         if torneo is None:
             await ctx.send("❌ No existe ese torneo")
