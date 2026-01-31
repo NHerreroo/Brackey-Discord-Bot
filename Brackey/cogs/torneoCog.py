@@ -79,6 +79,16 @@ class torneoCog(commands.Cog):
         await ctx.send(torneo.info())
 
 
+    @commands.command()
+    async def listTournaments(self, ctx):
+        torneos = [torneo.nombre for torneo in self.listaTorneos]
+        listaTorneos = "\n - ".join(torneos) if torneos else "No hay torneos aún."
+        await ctx.send(
+            f"Lista Torneos:\n - {listaTorneos}\n"
+        )
+
+
+
 
 async def setup(bot):
     await bot.add_cog(torneoCog(bot))
