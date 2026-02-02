@@ -1,13 +1,15 @@
 from random import random
 
+import discord
 from discord.ext import commands
 import requests
 
 
 # CLASE TORENO (LLEVA LA INFO DEL TORNEO)
 class Torneo:
-    def __init__(self, nombre, max_participantes):
+    def __init__(self, nombre, max_participantes, bracket):
         self.estado = "Esperando"
+        self.bracket = bracket
         self.nombre = nombre
         self.max_participantes = max_participantes
         self.participantes = []
@@ -28,16 +30,41 @@ class Torneo:
 
         return (
 
-            f"🏆 {self.nombre}\n"
+            f"🏆  {self.nombre}\n"
             f"👥 Participantes: {len(self.participantes)}/{self.max_participantes}\n"
+            f"Bracket: B{self.bracket}\n"
             f"Estado: {self.estado}\n"
             f"\n"
             f"Lista usuarios:\n - {participantes_str}\n"
 
         )
 
+#CLASE PARA EL BOTON DE JOIN CON UI
+class JoinTournamentView(discord.ui.View):
+    def __init__(self, torneo):
+        super().__init__(timeout=None)
+        self.torneo = torneo
 
-#CLASE ENCARGADA DE COMANDOS
+    @discord.ui.button(
+        label="Unirse al torneo",
+        style=discord.ButtonStyle.green,
+        emoji="🏆"
+    )
+    async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        if self.torneo.añadir_participante(interaction.user):
+            await interaction.response.send_message(
+                f"✅ {interaction.user.mention} se ha unido al torneo",
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                "❌ El torneo está lleno o ya estás dentro",
+                ephemeral=True
+            )
+
+
+#CLASE ENCARGADA DE COMANDOS --------------------------------------------------------------
 class torneoCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -45,16 +72,31 @@ class torneoCog(commands.Cog):
 
     # Crear el torneo
     @commands.command()
-    async def createTournament(self, ctx, max_participantes: int, *, nombre):
-        torneo = Torneo(nombre, max_participantes)
+    async def createTournament(self, ctx, max_participantes: int, bracket: int, *, nombre):
+        torneo = Torneo(nombre, max_participantes, bracket)
         self.listaTorneos.append(torneo)
 
-        await ctx.send(
-            f"🏆 Torneo **{nombre}** creado "
-            f"(máx {max_participantes} jugadores)"
+        embed = discord.Embed(
+            title=f"**{nombre}**",
+            description=f"MTG Tournament - Bracket {torneo.bracket}",
+            color=discord.Color.gold()
         )
 
-    # Unirse al torneo
+        embed.add_field(
+            name="👥 Máx. participantes",
+            value=str(max_participantes),
+            inline=False
+        )
+
+        embed.set_footer(text=f"Creado por {ctx.author.name}")
+
+        await ctx.send(
+            f"🏆 Torneo creado! \n",
+            embed=embed,
+            view=JoinTournamentView(torneo)
+        )
+
+    # Unirse al torneo de forma manual
     @commands.command()
     async def joinTournament(self, ctx, *, nombre):
         torneo = next(
@@ -117,6 +159,9 @@ class torneoCog(commands.Cog):
         torneo.estado = "En progreso"
         await ctx.send(mensaje)
 
+
+
+#MODIFICAR COMANDOS PARA HACERLO POR UI: PODER VER LA LISTA DANDO A BOTON idk estoy harto nah en v mola q  flipas esto soy hacker
 
 async def setup(bot):
     await bot.add_cog(torneoCog(bot))
