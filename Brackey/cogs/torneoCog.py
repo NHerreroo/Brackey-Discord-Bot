@@ -1,3 +1,5 @@
+from random import random
+
 from discord.ext import commands
 import requests
 
@@ -88,6 +90,32 @@ class torneoCog(commands.Cog):
         )
 
 
+    @commands.command()
+    async def startTournament(self, ctx, *, nombre):
+        torneo = next(
+            (t for t in self.listaTorneos if t.nombre == nombre), None)
+
+        if torneo is None:
+            await ctx.send("❌ No existe ese torneo")
+            return
+
+        if len(torneo.participantes) < 4:
+            await ctx.send("❌ No hay suficientes jugadores para empezar (mínimo 4)")
+            return
+
+        jugadores = torneo.participantes.copy()
+        random.shuffle(jugadores)
+
+        grupos = [jugadores[i:i + 4] for i in range(0, len(jugadores), 4)]
+
+        mensaje = f"🏆 **{torneo.nombre}** ha comenzado!\n\n"
+
+        for i, grupo in enumerate(grupos, start=1):
+            nombres = ", ".join(jugador.mention for jugador in grupo)
+            mensaje += f"**Grupo {i}:** {nombres}\n"
+
+        torneo.estado = "En progreso"
+        await ctx.send(mensaje)
 
 
 async def setup(bot):
