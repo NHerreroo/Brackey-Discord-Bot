@@ -64,6 +64,27 @@ class JoinTournamentView(discord.ui.View):
             )
 
 
+
+class ListTournamentView(discord.ui.View):
+    def __init__(self, torneo):
+        super().__init__(timeout=None)
+        self.torneo = torneo
+
+    @discord.ui.button(
+        label="Info",
+        style=discord.ButtonStyle.blurple,
+        emoji="🏆"
+    )
+    async def info(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        await interaction.response.send_message(
+            f"✅ {interaction.user.mention} se ha unido al torneo",
+            ephemeral=True
+        )
+
+
+
+
 #CLASE ENCARGADA DE COMANDOS --------------------------------------------------------------
 class torneoCog(commands.Cog):
     def __init__(self, bot):
