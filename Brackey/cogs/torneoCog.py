@@ -1,8 +1,6 @@
-from random import random
-
+from random import shuffle
 import discord
 from discord.ext import commands
-import requests
 
 
 # CLASE TORENO (LLEVA LA INFO DEL TORNEO)
@@ -23,24 +21,22 @@ class Torneo:
         self.participantes.append(usuario)
         return True
 
-
     def info(self):
         nombres = [miembro.name for miembro in self.participantes]
         participantes_str = "\n".join(nombres) if nombres else "No hay participantes aún."
 
         return (
-
             f"🏆  {self.nombre}\n"
             f"👥 Participantes: {len(self.participantes)}/{self.max_participantes}\n"
             f"Bracket: B{self.bracket}\n"
             f"Estado: {self.estado}\n"
             f"\n"
             f"Lista usuarios:\n - {participantes_str}\n"
-
         )
 
-#CLASE PARA EL BOTON DE JOIN CON UI
-class JoinTournamentView(discord.ui.View):
+
+# CLASE PARA EL BOTON DE JOIN Y INFO CON UI
+class TournamentView(discord.ui.View):
     def __init__(self, torneo):
         super().__init__(timeout=None)
         self.torneo = torneo
@@ -48,10 +44,10 @@ class JoinTournamentView(discord.ui.View):
     @discord.ui.button(
         label="Unirse al torneo",
         style=discord.ButtonStyle.green,
-        emoji="🏆"
+        emoji="🏆",
+        custom_id="join_tournament"
     )
-    async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
-
+    async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.torneo.añadir_participante(interaction.user):
             await interaction.response.send_message(
                 f"✅ {interaction.user.mention} se ha unido al torneo",
@@ -63,29 +59,52 @@ class JoinTournamentView(discord.ui.View):
                 ephemeral=True
             )
 
-
-
-class ListTournamentView(discord.ui.View):
-    def __init__(self, torneo):
-        super().__init__(timeout=None)
-        self.torneo = torneo
-
     @discord.ui.button(
         label="Info",
         style=discord.ButtonStyle.blurple,
-        emoji="🏆"
+        emoji="ℹ️",
+        custom_id="tournament_info"
     )
-    async def info(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        embed = discord.Embed(
+            title=f"🏆 {self.torneo.nombre}",
+            description=f"Información del torneo",
+            color=discord.Color.blue()
+        )
+
+        # Lista de participantes
+        nombres_participantes = [participante.name for participante in self.torneo.participantes]
+        participantes_str = "\n".join([f"• {nombre}" for nombre in
+                                       nombres_participantes]) if nombres_participantes else "No hay participantes aún."
+
+
+        embed.add_field(
+            name="📊 Bracket",
+            value=f"B{self.torneo.bracket}",
+            inline=True
+        )
+
+        embed.add_field(
+            name="📈 Estado",
+            value=self.torneo.estado,
+            inline=True
+        )
+
+        embed.add_field(
+            name=f"👥 Participantes ({len(self.torneo.participantes)}/{self.torneo.max_participantes})",
+            value=participantes_str,
+            inline=False
+        )
+
 
         await interaction.response.send_message(
-            f"✅ {interaction.user.mention} se ha unido al torneo",
+            embed=embed,
             ephemeral=True
         )
 
 
 
-
-#CLASE ENCARGADA DE COMANDOS --------------------------------------------------------------
 class torneoCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -109,19 +128,31 @@ class torneoCog(commands.Cog):
             inline=False
         )
 
-        embed.set_footer(text=f"Creado por {ctx.author.name}")
+        embed.add_field(
+            name="📊 Bracket",
+            value=f"B{bracket}",
+            inline=True
+        )
+
+        embed.add_field(
+            name="📈 Estado",
+            value="Esperando participantes",
+            inline=True
+        )
+
+        embed.set_footer(text=f"Creado por {ctx.author.name} • Usa los botones para interactuar")
 
         await ctx.send(
             f"🏆 Torneo creado! \n",
             embed=embed,
-            view=JoinTournamentView(torneo)
+            view=TournamentView(torneo)
         )
 
     # Unirse al torneo de forma manual
     @commands.command()
     async def joinTournament(self, ctx, *, nombre):
         torneo = next(
-            (t for t in self.listaTorneos if t.nombre == nombre),None)
+            (t for t in self.listaTorneos if t.nombre == nombre), None)
         if torneo is None:
             await ctx.send("❌ No existe ese torneo")
             return
@@ -135,14 +166,13 @@ class torneoCog(commands.Cog):
     @commands.command()
     async def tournamentInfo(self, ctx, *, nombre):
         torneo = next(
-            (t for t in self.listaTorneos if t.nombre == nombre),None)
+            (t for t in self.listaTorneos if t.nombre == nombre), None)
 
         if torneo is None:
             await ctx.send("❌ No existe ese torneo")
             return
 
         await ctx.send(torneo.info())
-
 
     @commands.command()
     async def listTournaments(self, ctx):
@@ -151,7 +181,6 @@ class torneoCog(commands.Cog):
         await ctx.send(
             f"Lista Torneos:\n - {listaTorneos}\n"
         )
-
 
     @commands.command()
     async def startTournament(self, ctx, *, nombre):
@@ -162,28 +191,40 @@ class torneoCog(commands.Cog):
             await ctx.send("❌ No existe ese torneo")
             return
 
-        if len(torneo.participantes) < 4:
+        #*if len(torneo.participantes) < 4:
             await ctx.send("❌ No hay suficientes jugadores para empezar (mínimo 4)")
             return
 
         jugadores = torneo.participantes.copy()
-        random.shuffle(jugadores)
+        shuffle(jugadores)
 
         grupos = [jugadores[i:i + 4] for i in range(0, len(jugadores), 4)]
 
-        mensaje = f"🏆 **{torneo.nombre}** ha comenzado!\n\n"
+        mensaje = ""
 
         for i, grupo in enumerate(grupos, start=1):
             nombres = ", ".join(jugador.mention for jugador in grupo)
             mensaje += f"**Grupo {i}:** {nombres}\n"
 
         torneo.estado = "En progreso"
-        await ctx.send(mensaje)
 
+        embed = discord.Embed(
+            title=f"**{nombre}**",
+            description=f"MTG Tournament - Bracket {torneo.bracket}",
+            color=discord.Color.gold()
+        )
 
+        embed.add_field(
+            name="👥 Participantes",
+            value=f"{mensaje}",
+            inline=False
+        )
 
-#MODIFICAR COMANDOS PARA HACERLO POR UI: PODER VER LA LISTA DANDO A BOTON idk estoy harto nah en v mola q  flipas esto soy hacker
+        await ctx.send(
+            f"🏆 **{torneo.nombre}** ha comenzado!\n",
+            embed=embed,
+        )
+
 
 async def setup(bot):
     await bot.add_cog(torneoCog(bot))
-
